@@ -32,36 +32,48 @@ def webhook(path):
             text = update["message"]["text"].strip()
             
             if text == "/start":
-                send_message(chat_id, "<b>Welcome to MTC Link Generator!</b> 🚀\n\nPaste your Telegram bot link or Terabox link below:")
+                send_message(chat_id, "<b>Welcome to MTC Link Generator!</b> 🚀\n\nPaste up to 5 Telegram or Terabox links together:")
                 return "OK", 200
 
-            target_url = ""
+            # सर्व लिंक्स शोधणे
+            words = text.split()
+            links_to_process = []
             
-            if "start=" in text:
-                code = text.split("start=")[1].split(" ")[0]
-                target_url = "https://mtcprotect.blogspot.com/p/telegram-redirect.html?start=" + code
-            elif text.startswith("http"):
-                target_url = text
+            for word in words:
+                if "start=" in word:
+                    code = word.split("start=")[1].split("&")[0]
+                    links_to_process.append("https://mtcprotect.blogspot.com/p/telegram-redirect.html?start=" + code)
+                elif word.startswith("http"):
+                    links_to_process.append(word)
             
-            if target_url:
-                send_message(chat_id, "⏳ <i>Processing...</i>")
-                try:
-                    api_url = f"https://nowshort.com/api?api={NOWSHORT_API}&url={urllib.parse.quote(target_url)}"
-                    res = requests.get(api_url)
-                    data = res.json()
-                    
-                    if "shortenedUrl" in data:
-                        short_id = data["shortenedUrl"].split("nowshort.com/")[1]
-                        enc_id = encrypt_id(short_id)
-                        final_link = f"https://mtc-go.vercel.app/s/{enc_id}"
+            # एका वेळी जास्तीत जास्त ५ लिंक्स (सर्व्हर सुरक्षित ठेवण्यासाठी)
+            links_to_process = links_to_process[:5]
+
+            if links_to_process:
+                send_message(chat_id, f"⏳ <i>Processing {len(links_to_process)} links... Please wait!</i>")
+                
+                final_messages = []
+                for target_url in links_to_process:
+                    try:
+                        api_url = f"https://nowshort.com/api?api={NOWSHORT_API}&url={urllib.parse.quote(target_url)}"
+                        res = requests.get(api_url).json()
                         
-                        send_message(chat_id, f"✅ <b>Generated Successfully!</b>\n\n<code>{final_link}</code>\n\n(Tap the link to copy)")
-                    else:
-                        send_message(chat_id, "❌ Error: Could not generate link from NowShort.")
-                except Exception as e:
-                    send_message(chat_id, "❌ System Error during conversion.")
+                        if "shortenedUrl" in res:
+                            short_id = res["shortenedUrl"].split("nowshort.com/")[1]
+                            enc_id = encrypt_id(short_id)
+                            final_link = f"https://mtc-go.vercel.app/s/{enc_id}"
+                            final_messages.append(f"✅ <code>{final_link}</code>")
+                        else:
+                            final_messages.append("❌ Error: Link failed.")
+                    except Exception as e:
+                        final_messages.append("❌ Error: System Issue.")
+                
+                # सर्व लिंक्स एकत्र रिप्लाय करणे
+                reply_text = "\n\n".join(final_messages)
+                reply_text += "\n\n(Tap the links to copy)"
+                send_message(chat_id, reply_text)
             else:
-                send_message(chat_id, "⚠️ Please send a valid Telegram or Terabox link.")
+                send_message(chat_id, "⚠️ Please send valid Telegram or Terabox links.")
     except Exception as e:
         pass
         
