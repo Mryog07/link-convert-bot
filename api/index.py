@@ -32,26 +32,27 @@ def webhook():
         text = update["message"]["text"]
         
         if text == "/start":
-            send_message(chat_id, "<b>Welcome to MTC Link Generator!</b> 🚀\n\nPaste your movie details with links below.")
+            send_message(chat_id, "<b>Welcome!</b> Paste your movie links below.")
             return "OK", 200
 
         urls = re.findall(r'(https?://[^\s]+)', text)
         if urls:
-            proc_msg_id = send_message(chat_id, "⏳ <i>Processing links... Please wait!</i>")
+            proc_msg_id = send_message(chat_id, "⏳ <i>Processing...</i>")
             new_text = text
             for url in urls[:5]:
-                # आता दोन लिंक्स वगळल्या आहेत
                 if "mtchannels.github.io" not in url and "t.me/LinkOpenNow" not in url:
                     try:
                         api_url = f"https://nowshort.com/api?api={NOWSHORT_API}&url={urllib.parse.quote(url)}"
                         res = requests.get(api_url).json()
                         if "shortenedUrl" in res:
-                            short_id = res["shortenedUrl"].split("nowshort.com/")[1]
-                            enc_id = encrypt_id(short_id)
+                            enc_id = encrypt_id(res["shortenedUrl"].split("nowshort.com/")[1])
                             new_text = new_text.replace(url, f"https://mtc-go.vercel.app/s/{enc_id}")
                     except: continue
             
-            send_message(chat_id, f"{new_text}\n\n✅ <b>Generated Successfully!</b>", reply_to=msg_id)
+            # मूळ पोस्ट जशीच्या तशी पाठवणे
+            send_message(chat_id, new_text, reply_to=msg_id)
+            # Generated चा मेसेज वेगळा पाठवणे
+            send_message(chat_id, "✅ <b>Generated Successfully!</b>")
             delete_message(chat_id, proc_msg_id)
             
     return "OK", 200
