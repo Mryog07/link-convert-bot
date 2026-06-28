@@ -5,10 +5,12 @@ import re
 
 app = Flask(__name__)
 
+# तुमचे सिक्रेट्स 
 BOT_TOKEN = "8781011517:AAHmZalssyKyEbbRogWVkqv4iiis1Rp_Fsk"
 NOWSHORT_API = "fb651ac52240c7865717bc46a105eb8a0d7246e1"
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
+# MTC एन्क्रिप्शन लॉजिक
 CHAR_MAP = {'A':'Z', 'Z':'A', 'B':'Y', 'Y':'B', 'C':'X', 'X':'C', 'D':'W', 'W':'D', 'E':'V', 'V':'E', 'F':'U', 'U':'F', 'G':'T', 'T':'G', 'H':'S', 'S':'H', 'I':'R', 'R':'I', 'J':'Q', 'Q':'J', 'K':'P', 'P':'K', 'L':'O', 'O':'L', 'M':'N', 'N':'M', 'a':'z', 'z':'a', 'b':'y', 'y':'b', 'c':'x', 'x':'c', 'd':'w', 'w':'d', 'e':'v', 'v':'e', 'f':'u', 'u':'f', 'g':'t', 't':'g', 'h':'s', 's':'h', 'i':'r', 'r':'i', 'j':'q', 'q':'j', 'k':'p', 'p':'k', 'l':'o', 'o':'l', 'm':'n', 'n':'m', '0':'9', '9':'0', '1':'8', '8':'1', '2':'7', '7':'2', '3':'6', '6':'3', '4':'5', '5':'4'}
 
 def encrypt_id(short_id):
@@ -26,10 +28,14 @@ def delete_message(chat_id, message_id):
 @app.route('/', methods=['POST'])
 def webhook():
     update = request.get_json()
-    if "message" in update and "text" in update["message"]:
-        chat_id = update["message"]["chat"]["id"]
-        msg_id = update["message"]["message_id"]
-        text = update["message"]["text"]
+    if "message" in update:
+        msg = update["message"]
+        # आता फोटोचे कॅप्शन किंवा साधे टेक्स्ट दोन्ही वाचेल
+        text = msg.get("text") or msg.get("caption")
+        if not text: return "OK", 200
+        
+        chat_id = msg["chat"]["id"]
+        msg_id = msg["message_id"]
         
         if text == "/start":
             send_message(chat_id, "<b>Welcome!</b> Paste your movie links below.")
@@ -37,15 +43,18 @@ def webhook():
 
         urls = re.findall(r'(https?://[^\s]+)', text)
         if urls:
-            proc_msg_id = send_message(chat_id, "⏳ <i>Processing...</i>")
+            proc_msg_id = send_message(chat_id, "⏳ <i>Processing links...</i>")
             new_text = text
+            
             for url in urls[:5]:
+                # mtchannels.github.io आणि t.me/LinkOpenNow वगळता कन्व्हर्ट करणे
                 if "mtchannels.github.io" not in url and "t.me/LinkOpenNow" not in url:
                     try:
                         api_url = f"https://nowshort.com/api?api={NOWSHORT_API}&url={urllib.parse.quote(url)}"
                         res = requests.get(api_url).json()
                         if "shortenedUrl" in res:
-                            enc_id = encrypt_id(res["shortenedUrl"].split("nowshort.com/")[1])
+                            short_id = res["shortenedUrl"].split("nowshort.com/")[1]
+                            enc_id = encrypt_id(short_id)
                             new_text = new_text.replace(url, f"https://mtc-go.vercel.app/s/{enc_id}")
                     except: continue
             
@@ -56,3 +65,4 @@ def webhook():
             delete_message(chat_id, proc_msg_id)
             
     return "OK", 200
+.
