@@ -10,7 +10,6 @@ app = Flask(__name__)
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 # --- अनेक ॲडमिन्ससाठी नवीन बदल ---
-# Environment मधून येणारे आयडी स्वल्पविराम (,) ने वेगळे करून त्यांची लिस्ट तयार केली जाते
 admin_env = os.environ.get("ADMIN_ID", "123456789")
 ADMIN_IDS = [int(x.strip()) for x in admin_env.split(",") if x.strip()] 
 
@@ -82,7 +81,6 @@ def webhook():
         data = cb["data"]
         cb_id = cb["id"]
 
-        # इथे तपासले जाईल की युजर ॲडमिन लिस्टमध्ये आहे की नाही
         if user_id not in ADMIN_IDS:
             answer_callback(cb_id, "You are not authorized!", True)
             return "OK", 200
@@ -128,13 +126,12 @@ def webhook():
 
         urls = re.findall(r'(https?://[^\s]+)', text)
         if urls:
-            proc_msg_id = send_message(chat_id, f"⏳ {format_sc('Processing links...')}')
+            proc_msg_id = send_message(chat_id, f"⏳ {format_sc('Processing links...')}")
             new_text = text
 
             for url in urls[:5]:
                 if "mtchannels.github.io" not in url and "t.me/LinkOpenNow" not in url:
                     try:
-                        # शॉर्टनर ON असेल तेव्हाची प्रक्रिया
                         if SETTINGS["SHORTENER_ON"]:
                             api_url = f"https://nowshort.com/api?api={SETTINGS['API_KEY']}&url={urllib.parse.quote(url)}"
                             res = requests.get(api_url).json()
@@ -142,11 +139,9 @@ def webhook():
                                 target_id = res["shortenedUrl"].split("nowshort.com/")[1]
                             else:
                                 continue
-                        # शॉर्टनर OFF असेल तेव्हाची प्रक्रिया (डायरेक्ट बायपास)
                         else:
                             target_id = url
                             
-                        # आयडी किंवा लिंक एन्क्रिप्ट करून Vercel वर पाठवा
                         enc_id = encrypt_id(target_id)
                         new_text = new_text.replace(url, f"https://mtc-go.vercel.app/s/{enc_id}")
                     except: continue
