@@ -73,7 +73,7 @@ def set_webhook():
 @app.route('/', methods=['POST'])
 def webhook():
     update = request.get_json()
-    
+
     if "callback_query" in update:
         cb = update["callback_query"]
         chat_id = cb["message"]["chat"]["id"]
@@ -128,20 +128,28 @@ def webhook():
 
         urls = re.findall(r'(https?://[^\s]+)', text)
         if urls:
-            proc_msg_id = send_message(chat_id, f"⏳ {format_sc('Processing links...')}")
+            proc_msg_id = send_message(chat_id, f"⏳ {format_sc('Processing links...')}')
             new_text = text
-            
-            if SETTINGS["SHORTENER_ON"]:
-                for url in urls[:5]:
-                    if "mtchannels.github.io" not in url and "t.me/LinkOpenNow" not in url:
-                        try:
+
+            for url in urls[:5]:
+                if "mtchannels.github.io" not in url and "t.me/LinkOpenNow" not in url:
+                    try:
+                        # शॉर्टनर ON असेल तेव्हाची प्रक्रिया
+                        if SETTINGS["SHORTENER_ON"]:
                             api_url = f"https://nowshort.com/api?api={SETTINGS['API_KEY']}&url={urllib.parse.quote(url)}"
                             res = requests.get(api_url).json()
                             if "shortenedUrl" in res:
-                                short_id = res["shortenedUrl"].split("nowshort.com/")[1]
-                                enc_id = encrypt_id(short_id)
-                                new_text = new_text.replace(url, f"https://mtc-go.vercel.app/s/{enc_id}")
-                        except: continue
+                                target_id = res["shortenedUrl"].split("nowshort.com/")[1]
+                            else:
+                                continue
+                        # शॉर्टनर OFF असेल तेव्हाची प्रक्रिया (डायरेक्ट बायपास)
+                        else:
+                            target_id = url
+                            
+                        # आयडी किंवा लिंक एन्क्रिप्ट करून Vercel वर पाठवा
+                        enc_id = encrypt_id(target_id)
+                        new_text = new_text.replace(url, f"https://mtc-go.vercel.app/s/{enc_id}")
+                    except: continue
 
             if "photo" in msg:
                 photo_id = msg["photo"][-1]["file_id"]
