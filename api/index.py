@@ -140,8 +140,9 @@ def webhook():
                             else:
                                 continue
                         else:
-                            target_id = url
-                            
+                            # शॉर्टनर OFF असताना https://t.me/ काढून फक्त पुढचा भाग घेतला जाईल
+                            target_id = url.replace("https://t.me/", "").replace("http://", "")
+
                         enc_id = encrypt_id(target_id)
                         new_text = new_text.replace(url, f"https://mtc-go.vercel.app/s/{enc_id}")
                     except: continue
