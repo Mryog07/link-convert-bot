@@ -137,14 +137,14 @@ def webhook():
                             res = requests.get(api_url).json()
                             if "shortenedUrl" in res:
                                 target_id = res["shortenedUrl"].split("nowshort.com/")[1]
+                                enc_id = encrypt_id(target_id)
+                                new_text = new_text.replace(url, f"https://mtc-go.vercel.app/s/{enc_id}")
                             else:
                                 continue
                         else:
-                            # शॉर्टनर OFF असताना पूर्ण लिंक (url) तशीच घेतली जाईल
-                            target_id = url
-
-                        enc_id = encrypt_id(target_id)
-                        new_text = new_text.replace(url, f"https://mtc-go.vercel.app/s/{enc_id}")
+                            # शॉर्टनर OFF असताना पूर्ण लिंक सेफली एन्क्रिप्ट केली जाईल
+                            enc_id = encrypt_id(url)
+                            new_text = new_text.replace(url, f"https://mtc-go.vercel.app/s/{enc_id}")
                     except: continue
 
             if "photo" in msg:
